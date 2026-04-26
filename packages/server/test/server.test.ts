@@ -132,10 +132,10 @@ describe("POST /query", () => {
     });
     expect(res.statusCode).toBe(200);
     const body = res.json() as QueryResponse;
-    expect(body.total).toBeGreaterThan(40);
+    expect(body.total).toBeGreaterThan(15);
   });
 
-  it("should exclude Articuno from M-A (HOME-only, in speciesBanlist)", async () => {
+  it("should exclude Articuno from M-A (not in Paldea base dex)", async () => {
     const res = await app.inject({
       method: "POST",
       url: "/query",

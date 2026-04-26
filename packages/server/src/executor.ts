@@ -139,6 +139,10 @@ function buildFormatClauses(format: Format, params: unknown[]): string {
     parts.push(`s.id NOT IN (${ph})`);
   }
 
+  if (format.svPool) {
+    parts.push("s.is_paldea_dex = 1");
+  }
+
   if (format.speciesBanlist.size > 0) {
     const ph = Array.from(format.speciesBanlist).map(() => "?").join(",");
     params.push(...format.speciesBanlist);

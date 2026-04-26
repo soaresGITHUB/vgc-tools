@@ -1,5 +1,6 @@
 import { Dex } from "@pkmn/dex";
 import { Generations, toID } from "@pkmn/data";
+import { isInPaldeaBaseDex } from "@pokequery/core";
 import { applySchema, openDb, DB_PATH } from "./db.js";
 import { existsSync, unlinkSync } from "node:fs";
 
@@ -69,7 +70,7 @@ async function main(): Promise<void> {
   const gen7 = gens.get(7);
 
   const insertSpecies = db.prepare(`
-    INSERT INTO species (id, name, num, hp, atk, def, spa, spd, spe, weight, is_mega, is_natdex, base_species, hidden_ability)
+    INSERT INTO species (id, name, num, hp, atk, def, spa, spd, spe, weight, is_mega, is_paldea_dex, base_species, hidden_ability)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const insertSpeciesType = db.prepare(`
@@ -103,7 +104,7 @@ async function main(): Promise<void> {
       const isMega = (s.forme ?? "").startsWith("Mega") ? 1 : 0;
       const baseSpecies = s.baseSpecies && s.baseSpecies !== s.name ? s.baseSpecies : null;
       const hiddenAbility = s.abilities["H"] ?? null;
-      const isNatdex = natdexIds.has(s.id) ? 1 : 0;
+      const isPaldeaDex = isInPaldeaBaseDex(s.id, s.num) ? 1 : 0;
       insertSpecies.run(
         s.id,
         s.name,
@@ -116,7 +117,7 @@ async function main(): Promise<void> {
         s.baseStats.spe,
         s.weightkg,
         isMega,
-        isNatdex,
+        isPaldeaDex,
         baseSpecies,
         hiddenAbility,
       );
@@ -170,7 +171,6 @@ async function main(): Promise<void> {
   });
 
   const speciesGen9 = Array.from(gen9.species).filter(isStandard) as unknown as Species[];
-  const natdexIds = new Set<string>(speciesGen9.filter((s) => s.isNonstandard === null).map((s) => s.id));
 
   const megaSpecies = (Array.from(gen7.species) as unknown as Species[])
     .filter((s) => (s.forme ?? "").startsWith("Mega"))

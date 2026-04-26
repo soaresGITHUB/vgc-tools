@@ -10,6 +10,8 @@ export interface Format {
   name: string;
   generation: number;
   mechanics: FormatMechanics;
+  /** When true, queries are restricted to Pokémon in the base Paldea Pokédex (is_paldea_dex = 1). */
+  svPool: boolean;
   speciesAllowlist: Set<string> | null;
   speciesBanlist: Set<string>;
   restrictedSpecies: Set<string>;
@@ -26,6 +28,7 @@ const VGC_RESTRICTED = new Set([
   "xerneas", "yveltal", "zygarde", "cosmog", "cosmoem", "solgaleo",
   "lunala", "necrozma", "zacian", "zamazenta", "eternatus", "calyrex",
   "koraidon", "miraidon",
+  "wochien", "chienpao", "tinglu", "chiyu",
 ]);
 
 export const REG_M_A: Format = {
@@ -38,8 +41,9 @@ export const REG_M_A: Format = {
     dynamax: false,
     zMoves: false,
   },
+  svPool: true,
   speciesAllowlist: null,
-  speciesBanlist: new Set(["articuno", "articunogalar"]),
+  speciesBanlist: new Set(),
   restrictedSpecies: VGC_RESTRICTED,
   maxRestricted: 0,
   itemBanlist: new Set(),
@@ -58,8 +62,9 @@ export const REG_I: Format = {
     dynamax: false,
     zMoves: false,
   },
+  svPool: false,
   speciesAllowlist: null,
-  speciesBanlist: new Set(["mythicalonly"]),
+  speciesBanlist: new Set(),
   restrictedSpecies: VGC_RESTRICTED,
   maxRestricted: 2,
   itemBanlist: new Set(),
