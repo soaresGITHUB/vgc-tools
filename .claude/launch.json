@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "pokequery-web",
+      "runtimeExecutable": "C:\\Users\\Marco\\Documents\\vgc-data\\start-web.cmd",
+      "runtimeArgs": [],
+      "port": 5173
+    }
+  ]
+}

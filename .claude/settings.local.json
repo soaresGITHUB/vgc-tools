@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm install *)",
+      "Bash(cmd /c \"pnpm install 2>&1\")",
+      "PowerShell(pnpm install 2>&1)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Marco\\\\scoop\\\\shims\" -ErrorAction SilentlyContinue | Where-Object { $_.Name -match \"node|pnpm|npm\" } | Select-Object Name; Get-ChildItem \"C:\\\\ProgramData\\\\chocolatey\\\\bin\" -ErrorAction SilentlyContinue | Where-Object { $_.Name -match \"node|pnpm|npm\" } | Select-Object Name; Get-ChildItem \"C:\\\\Users\\\\Marco\\\\.volta\\\\bin\" -ErrorAction SilentlyContinue | Select-Object -First 10 Name)",
+      "Read(//mingw64/**)",
+      "Read(//c/Users/Marco/**)",
+      "PowerShell($env:PATH = \"C:\\\\Program Files\\\\nodejs;\" + $env:PATH; node --version; npm --version)",
+      "Bash(python3 -c \"import json,sys; p=json.load\\(sys.stdin\\); print\\('main:', p.get\\('main'\\)\\); print\\('module:', p.get\\('module'\\)\\); print\\('exports:', p.get\\('exports'\\)\\)\")",
+      "mcp__Claude_Preview__preview_start",
+      "PowerShell($env:PATH = \"C:\\\\Program Files\\\\nodejs;C:\\\\Users\\\\Marco\\\\AppData\\\\Roaming\\\\npm;\" + $env:PATH; \\(Get-Command pnpm\\).Source)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
+      "PowerShell($nvmHome = \"C:\\\\Users\\\\Marco\\\\AppData\\\\Local\\\\nvm\"; $env:NVM_HOME = $nvmHome; $env:NVM_SYMLINK = \"C:\\\\nvm4w\\\\nodejs\"; $env:PATH = \"$nvmHome;C:\\\\nvm4w\\\\nodejs;\" + $env:PATH; nvm --version)",
+      "Bash(curl -s http://localhost:3001/health)",
+      "Bash(curl -s http://localhost:3001/formats)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(f['id']\\) for f in d]\")",
+      "Bash(pnpm --filter @pokequery/core test)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git config *)"
+    ]
+  }
+}

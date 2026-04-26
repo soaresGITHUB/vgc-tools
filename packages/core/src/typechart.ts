@@ -1,0 +1,43 @@
+import type { PokemonType } from "./types.js";
+
+export const TYPES_IMMUNE_TO_ATTACK: Record<PokemonType, PokemonType[]> = {
+  Normal: ["Ghost"],
+  Fire: [],
+  Water: [],
+  Electric: ["Ground"],
+  Grass: [],
+  Ice: [],
+  Fighting: ["Ghost"],
+  Poison: ["Steel"],
+  Ground: ["Flying"],
+  Flying: [],
+  Psychic: ["Dark"],
+  Bug: [],
+  Rock: [],
+  Ghost: ["Normal"],
+  Dragon: ["Fairy"],
+  Dark: [],
+  Steel: [],
+  Fairy: [],
+};
+
+export const ABILITIES_IMMUNE_TO_ATTACK: Record<PokemonType, string[]> = {
+  Normal: [],
+  Fire: ["Flash Fire"],
+  Water: ["Water Absorb", "Storm Drain", "Dry Skin"],
+  Electric: ["Volt Absorb", "Motor Drive", "Lightning Rod"],
+  Grass: ["Sap Sipper"],
+  Ice: [],
+  Fighting: [],
+  Poison: [],
+  Ground: ["Levitate", "Earth Eater"],
+  Flying: [],
+  Psychic: [],
+  Bug: [],
+  Rock: [],
+  Ghost: [],
+  Dragon: [],
+  Dark: [],
+  Steel: [],
+  Fairy: [],
+};

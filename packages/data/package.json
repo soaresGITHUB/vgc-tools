@@ -1,0 +1,28 @@
+{
+  "name": "@pokequery/data",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "ingest": "tsx src/ingest.ts",
+    "verify": "tsx src/verify.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@pkmn/data": "^0.9.30",
+    "@pkmn/dex": "^0.9.30",
+    "better-sqlite3": "^11.3.0",
+    "@pokequery/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  }
+}
