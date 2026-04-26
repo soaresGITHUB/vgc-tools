@@ -16,8 +16,13 @@ const EXAMPLE: Predicate = {
   kind: "and",
   children: [
     { kind: "learnsMove", moveId: "trickroom" },
-    { kind: "immuneToType", type: "Ground", allowAbilities: true },
-    { kind: "not", child: { kind: "isMega" } },
+    {
+      kind: "or",
+      children: [
+        { kind: "immuneToType", type: "Ground", allowAbilities: true },
+        { kind: "partnerSpreadImmuneTo" },
+      ],
+    },
   ],
 };
 
@@ -69,7 +74,7 @@ export default function App() {
             className="text-sm text-gray-500 hover:text-indigo-600"
             onClick={() => setPredicate(EXAMPLE)}
           >
-            Load example (Trick Room + Ground immune)
+            Load example (Trick Room + immune to Ground)
           </button>
           <button
             type="button"

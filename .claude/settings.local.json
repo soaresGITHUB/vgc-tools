@@ -20,7 +20,18 @@
       "Bash(git init *)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git config *)"
+      "Bash(git config *)",
+      "Bash(git remote *)",
+      "Bash(git branch *)",
+      "Bash(git push *)",
+      "Bash(gh auth *)",
+      "Bash(where gh *)",
+      "Bash(pnpm --filter @pokequery/core build)",
+      "Bash(VITE_BASE_URL=/vgc-tools/ pnpm --filter @pokequery/web build)",
+      "Bash(set \"VITE_BASE_URL=/vgc-tools/\")",
+      "Bash(pnpm --filter @pokequery/web build)",
+      "Bash(pnpm --filter @pokequery/server build)",
+      "Bash(pnpm --filter @pokequery/server test)"
     ]
   }
 }

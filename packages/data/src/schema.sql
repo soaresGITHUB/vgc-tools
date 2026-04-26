@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS species (
   spe INTEGER NOT NULL,
   weight REAL NOT NULL,
   is_mega INTEGER NOT NULL DEFAULT 0,
+  is_natdex INTEGER NOT NULL DEFAULT 0,
   base_species TEXT,
   hidden_ability TEXT
 );

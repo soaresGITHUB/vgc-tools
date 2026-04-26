@@ -20,6 +20,14 @@ export interface Format {
   megaStoneAllowlist: Set<string> | null;
 }
 
+const VGC_RESTRICTED = new Set([
+  "mewtwo", "lugia", "hooh", "kyogre", "groudon", "rayquaza",
+  "dialga", "palkia", "giratina", "reshiram", "zekrom", "kyurem",
+  "xerneas", "yveltal", "zygarde", "cosmog", "cosmoem", "solgaleo",
+  "lunala", "necrozma", "zacian", "zamazenta", "eternatus", "calyrex",
+  "koraidon", "miraidon",
+]);
+
 export const REG_M_A: Format = {
   id: "vgc-2026-reg-m-a",
   name: "VGC 2026 Regulation Set M-A",
@@ -31,8 +39,8 @@ export const REG_M_A: Format = {
     zMoves: false,
   },
   speciesAllowlist: null,
-  speciesBanlist: new Set(),
-  restrictedSpecies: new Set(),
+  speciesBanlist: new Set(["articuno", "articunogalar"]),
+  restrictedSpecies: VGC_RESTRICTED,
   maxRestricted: 0,
   itemBanlist: new Set(),
   moveBanlist: new Set(),
@@ -52,13 +60,7 @@ export const REG_I: Format = {
   },
   speciesAllowlist: null,
   speciesBanlist: new Set(["mythicalonly"]),
-  restrictedSpecies: new Set([
-    "mewtwo", "lugia", "hooh", "kyogre", "groudon", "rayquaza",
-    "dialga", "palkia", "giratina", "reshiram", "zekrom", "kyurem",
-    "xerneas", "yveltal", "zygarde", "cosmog", "cosmoem", "solgaleo",
-    "lunala", "necrozma", "zacian", "zamazenta", "eternatus", "calyrex",
-    "koraidon", "miraidon",
-  ]),
+  restrictedSpecies: VGC_RESTRICTED,
   maxRestricted: 2,
   itemBanlist: new Set(),
   moveBanlist: new Set(),

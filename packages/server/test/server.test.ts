@@ -135,6 +135,34 @@ describe("POST /query", () => {
     expect(body.total).toBeGreaterThan(40);
   });
 
+  it("should exclude Articuno from M-A (HOME-only, in speciesBanlist)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/query",
+      payload: {
+        predicate: { kind: "speciesId", id: "articuno" },
+        formatId: "vgc-2026-reg-m-a",
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as QueryResponse;
+    expect(body.total).toBe(0);
+  });
+
+  it("should exclude Dialga from M-A (restricted legendary, maxRestricted=0)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/query",
+      payload: {
+        predicate: { kind: "speciesId", id: "dialga" },
+        formatId: "vgc-2026-reg-m-a",
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as QueryResponse;
+    expect(body.total).toBe(0);
+  });
+
   it("should reject an unknown format with 400", async () => {
     const res = await app.inject({
       method: "POST",

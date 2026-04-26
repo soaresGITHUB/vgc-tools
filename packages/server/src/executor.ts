@@ -133,6 +133,12 @@ function buildFormatClauses(format: Format, params: unknown[]): string {
     parts.push("s.is_mega = 0");
   }
 
+  if (format.maxRestricted === 0 && format.restrictedSpecies.size > 0) {
+    const ph = Array.from(format.restrictedSpecies).map(() => "?").join(",");
+    params.push(...format.restrictedSpecies);
+    parts.push(`s.id NOT IN (${ph})`);
+  }
+
   if (format.speciesBanlist.size > 0) {
     const ph = Array.from(format.speciesBanlist).map(() => "?").join(",");
     params.push(...format.speciesBanlist);

@@ -50,6 +50,8 @@ export async function getTestDb(): Promise<DbLike> {
     d.isNonstandard === null || d.isNonstandard === "Past";
 
   const speciesGen9 = (Array.from(gen9.species) as any[]).filter(isStandard);
+  const natdexIds = new Set<string>(speciesGen9.filter((s: any) => s.isNonstandard === null).map((s: any) => s.id as string));
+
   const megaSpecies = (Array.from(gen7.species) as any[])
     .filter((s) => (s.forme ?? "").startsWith("Mega"))
     .filter(isStandard);
@@ -63,7 +65,7 @@ export async function getTestDb(): Promise<DbLike> {
   }
 
   const insSpec = db.prepare(
-    "INSERT INTO species (id, name, num, hp, atk, def, spa, spd, spe, weight, is_mega, base_species, hidden_ability) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+    "INSERT INTO species (id, name, num, hp, atk, def, spa, spd, spe, weight, is_mega, is_natdex, base_species, hidden_ability) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
   );
   const insType = db.prepare("INSERT INTO species_types (species_id, type, slot) VALUES (?,?,?)");
   const insAbil = db.prepare(
@@ -77,6 +79,7 @@ export async function getTestDb(): Promise<DbLike> {
       s.baseStats.hp, s.baseStats.atk, s.baseStats.def,
       s.baseStats.spa, s.baseStats.spd, s.baseStats.spe,
       s.weightkg, (s.forme ?? "").startsWith("Mega") ? 1 : 0,
+      natdexIds.has(s.id) ? 1 : 0,
       baseSpecies, s.abilities.H ?? null,
     ]);
     s.types.forEach((t: string, i: number) => insType.run([s.id, t, i]));
