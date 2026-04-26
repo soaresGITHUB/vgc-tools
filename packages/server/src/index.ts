@@ -19,7 +19,7 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<{ app: Fasti
   } else {
     const { openDb } = await import("@pokequery/data");
     const real = openDb(opts.dbPath);
-    db = real;
+    db = real as unknown as DbLike;
     ownsDb = true;
     app.addHook("onClose", async () => real.close());
   }

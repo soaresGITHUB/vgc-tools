@@ -12,7 +12,7 @@ const COMPARISON_OPS = ["eq", "neq", "lt", "lte", "gt", "gte"] as const;
 
 const idSchema = z.string().min(1).max(64).regex(/^[a-z0-9]+$/, "must be a valid id");
 
-export const predicateSchema: z.ZodType<Predicate> = z.lazy(() =>
+export const predicateSchema: z.ZodType<Predicate, z.ZodTypeDef, unknown> = z.lazy(() =>
   z.discriminatedUnion("kind", [
     z.object({ kind: z.literal("and"), children: z.array(predicateSchema).max(50) }),
     z.object({ kind: z.literal("or"), children: z.array(predicateSchema).max(50) }),
