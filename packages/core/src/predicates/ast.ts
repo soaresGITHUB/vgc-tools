@@ -14,6 +14,10 @@ export type Predicate =
   | { kind: "statCompare"; stat: StatKey; op: ComparisonOp; value: number }
   | { kind: "immuneToType"; type: PokemonType; allowAbilities: boolean }
   | { kind: "partnerSpreadImmuneTo" }
+  | { kind: "redirectionUser" }
+  | { kind: "speedControlUser" }
+  | { kind: "fakeOutImmune" }
+  | { kind: "intimidateImmune" }
   | { kind: "speciesId"; id: string }
   | { kind: "notSpeciesId"; id: string };
 

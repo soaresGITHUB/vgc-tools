@@ -1,5 +1,5 @@
 import type { Predicate, ComparisonOp } from "./ast.js";
-import { hasAbility, immuneToType, or } from "./ast.js";
+import { hasAbility, hasAnyAbility, hasType, immuneToType, learnsMove, or } from "./ast.js";
 import { ABILITIES_IMMUNE_TO_ATTACK, TYPES_IMMUNE_TO_ATTACK } from "../typechart.js";
 
 export interface CompiledQuery {
@@ -76,6 +76,37 @@ function compileNode(p: Predicate, params: unknown[]): string {
     }
     case "partnerSpreadImmuneTo":
       return compileNode(or(immuneToType("Ground", true), hasAbility("telepathy")), params);
+    case "redirectionUser":
+      return compileNode(or(learnsMove("followme"), learnsMove("ragepowder")), params);
+    case "speedControlUser":
+      return compileNode(
+        or(
+          learnsMove("trickroom"),
+          learnsMove("tailwind"),
+          learnsMove("icywind"),
+          learnsMove("electroweb"),
+          learnsMove("thunderwave"),
+        ),
+        params,
+      );
+    case "fakeOutImmune":
+      return compileNode(
+        or(hasAbility("innerfocus"), hasAbility("owntempo"), hasType("Ghost")),
+        params,
+      );
+    case "intimidateImmune":
+      return compileNode(
+        hasAnyAbility([
+          "innerfocus",
+          "owntempo",
+          "oblivious",
+          "scrappy",
+          "guarddog",
+          "defiant",
+          "competitive",
+        ]),
+        params,
+      );
     case "speciesId":
       params.push(p.id);
       return "s.id = ?";

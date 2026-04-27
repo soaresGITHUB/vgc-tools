@@ -13,7 +13,18 @@ const STAT_LABELS: Record<StatKey, string> = { hp: "HP", atk: "Atk", def: "Def",
 const OP_LABELS: Record<ComparisonOp, string> = { eq: "=", neq: "≠", lt: "<", lte: "≤", gt: ">", gte: "≥" };
 const OPS: ComparisonOp[] = ["lt", "lte", "eq", "neq", "gte", "gt"];
 
-type SupportedLeafKind = "learnsMove" | "hasType" | "hasAbility" | "immuneToType" | "partnerSpreadImmuneTo" | "statCompare" | "isMega";
+type SupportedLeafKind =
+  | "learnsMove"
+  | "hasType"
+  | "hasAbility"
+  | "immuneToType"
+  | "partnerSpreadImmuneTo"
+  | "redirectionUser"
+  | "speedControlUser"
+  | "fakeOutImmune"
+  | "intimidateImmune"
+  | "statCompare"
+  | "isMega";
 
 const LEAF_LABELS: Record<SupportedLeafKind, string> = {
   learnsMove: "Learns move",
@@ -21,6 +32,10 @@ const LEAF_LABELS: Record<SupportedLeafKind, string> = {
   hasAbility: "Has ability",
   immuneToType: "Immune to type",
   partnerSpreadImmuneTo: "Immune to partner-spread",
+  redirectionUser: "Redirection user",
+  speedControlUser: "Speed control user",
+  fakeOutImmune: "Fake Out immune (no items)",
+  intimidateImmune: "Intimidate immune",
   statCompare: "Stat comparison",
   isMega: "Is Mega",
 };
@@ -31,6 +46,10 @@ const LEAF_DEFAULTS: Record<SupportedLeafKind, Predicate> = {
   hasAbility: { kind: "hasAbility", abilityId: "" },
   immuneToType: { kind: "immuneToType", type: "Ground", allowAbilities: true },
   partnerSpreadImmuneTo: { kind: "partnerSpreadImmuneTo" },
+  redirectionUser: { kind: "redirectionUser" },
+  speedControlUser: { kind: "speedControlUser" },
+  fakeOutImmune: { kind: "fakeOutImmune" },
+  intimidateImmune: { kind: "intimidateImmune" },
   statCompare: { kind: "statCompare", stat: "spe", op: "lt", value: 60 },
   isMega: { kind: "isMega" },
 };
@@ -296,6 +315,10 @@ function ConditionInputs({ predicate, onChange, moves, abilities }: LeafProps) {
       );
 
     case "partnerSpreadImmuneTo":
+    case "redirectionUser":
+    case "speedControlUser":
+    case "fakeOutImmune":
+    case "intimidateImmune":
       return null;
 
     case "statCompare":

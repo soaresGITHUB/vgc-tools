@@ -46,6 +46,24 @@ for (const r of rows) {
   console.log(`  ${String(r.name).padEnd(20)} spe=${String(r.spe).padEnd(4)} ${r.types} | ${r.abilities}`);
 }
 
+console.log("\n=== HOME-supplemented species in Reg M-A ===");
+const HOME_REQUIRED = ["kangaskhan", "pidgeot", "aegislash", "starmie"] as const;
+const homeFailures: string[] = [];
+for (const id of HOME_REQUIRED) {
+  const sp = db.prepare("SELECT id, name FROM species WHERE id = ?").get(id) as SimpleRow | undefined;
+  if (!sp) { homeFailures.push(`${id}: not in species table`); continue; }
+  const legal = db
+    .prepare("SELECT 1 FROM species_format_legality WHERE species_id = ? AND format_id = ?")
+    .get(id, "vgc-2026-reg-m-a");
+  if (!legal) { homeFailures.push(`${id}: not legal in vgc-2026-reg-m-a`); continue; }
+  console.log(`  ${id.padEnd(20)} OK (${sp.name})`);
+}
+if (homeFailures.length > 0) {
+  console.error("\nHOME assertions FAILED:");
+  for (const f of homeFailures) console.error(`  - ${f}`);
+  process.exitCode = 1;
+}
+
 console.log("\n=== META ===");
 console.log(db.prepare("SELECT key, value FROM meta").all());
 

@@ -12,7 +12,13 @@ import {
   speciesId,
   statCompare,
 } from "./ast.js";
-import { partnerSpreadImmuneTo } from "./composite.js";
+import {
+  fakeOutImmune,
+  intimidateImmune,
+  partnerSpreadImmuneTo,
+  redirectionUser,
+  speedControlUser,
+} from "./composite.js";
 import { compilePredicate } from "./compile.js";
 
 describe("compilePredicate", () => {
@@ -105,6 +111,46 @@ describe("compilePredicate", () => {
     expect(result.params).toContain("levitate");
     expect(result.params).toContain("eartheater");
     expect(result.params).toContain("telepathy");
+  });
+
+  it("should compile redirectionUser to followme OR ragepowder", () => {
+    const result = compilePredicate(redirectionUser());
+    expect(result.whereClause).toMatch(/OR/);
+    expect(result.params).toEqual(["followme", "ragepowder"]);
+  });
+
+  it("should compile speedControlUser to OR of speed-control moves", () => {
+    const result = compilePredicate(speedControlUser());
+    expect(result.whereClause).toMatch(/OR/);
+    expect(result.params).toEqual([
+      "trickroom",
+      "tailwind",
+      "icywind",
+      "electroweb",
+      "thunderwave",
+    ]);
+  });
+
+  it("should compile fakeOutImmune to Inner Focus OR Own Tempo OR Ghost type", () => {
+    const result = compilePredicate(fakeOutImmune());
+    expect(result.whereClause).toMatch(/OR/);
+    expect(result.params).toContain("innerfocus");
+    expect(result.params).toContain("owntempo");
+    expect(result.params).toContain("Ghost");
+  });
+
+  it("should compile intimidateImmune to a single hasAnyAbility IN clause", () => {
+    const result = compilePredicate(intimidateImmune());
+    expect(result.whereClause).toMatch(/IN \(\?,\?,\?,\?,\?,\?,\?\)/);
+    expect(result.params).toEqual([
+      "innerfocus",
+      "owntempo",
+      "oblivious",
+      "scrappy",
+      "guarddog",
+      "defiant",
+      "competitive",
+    ]);
   });
 
   it("should nest AND/OR predicates correctly", () => {

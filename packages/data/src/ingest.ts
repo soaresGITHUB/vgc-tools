@@ -93,6 +93,7 @@ async function main(): Promise<void> {
 
   const gens = new Generations(Dex);
   const gen9 = gens.get(9);
+  const gen8 = gens.get(8);
   const gen7 = gens.get(7);
 
   const insertSpecies = db.prepare(`
@@ -197,6 +198,15 @@ async function main(): Promise<void> {
     }
   });
 
+  const allowlistFiles: Array<{ formatId: string; ids: string[]; file: string }> = [];
+  for (const file of readdirSync(LEGAL_SPECIES_DIR)) {
+    if (!file.endsWith(".txt")) continue;
+    const formatId = formatIdFromFilename(basename(file, ".txt"));
+    const ids = parseAllowlist(join(LEGAL_SPECIES_DIR, file));
+    allowlistFiles.push({ formatId, ids, file });
+  }
+  const allLegalIds = new Set(allowlistFiles.flatMap((f) => f.ids));
+
   const speciesGen9 = Array.from(gen9.species).filter(isStandard) as unknown as Species[];
 
   const megaSpecies = (Array.from(gen7.species) as unknown as Species[])
@@ -211,7 +221,35 @@ async function main(): Promise<void> {
     allSpecies.push(s);
   }
 
-  console.log(`ingesting ${allSpecies.length} species (${speciesGen9.length} gen9 + ${megaSpecies.length} mega from gen7)`);
+  const homeSupplementIds = [...allLegalIds].filter((id) => !seenSpeciesIds.has(id));
+  const homeFromGen8: Species[] = [];
+  const homeFromGen7: Species[] = [];
+  const homeUnresolved: string[] = [];
+  for (const id of homeSupplementIds) {
+    const fromGen8 = gen8.species.get(id) as unknown as Species | undefined;
+    if (fromGen8) {
+      homeFromGen8.push(fromGen8);
+      seenSpeciesIds.add(fromGen8.id);
+      allSpecies.push(fromGen8);
+      continue;
+    }
+    const fromGen7 = gen7.species.get(id) as unknown as Species | undefined;
+    if (fromGen7) {
+      homeFromGen7.push(fromGen7);
+      seenSpeciesIds.add(fromGen7.id);
+      allSpecies.push(fromGen7);
+      continue;
+    }
+    homeUnresolved.push(id);
+  }
+  if (homeFromGen8.length + homeFromGen7.length > 0) {
+    console.log(`HOME supplement: +${homeFromGen8.length} from gen8, +${homeFromGen7.length} from gen7 (${homeFromGen8.map((s) => s.id).concat(homeFromGen7.map((s) => s.id)).join(", ")})`);
+  }
+  if (homeUnresolved.length > 0) {
+    console.warn(`HOME supplement: could not resolve ${homeUnresolved.length} ids in gen8/gen7: ${homeUnresolved.join(", ")}`);
+  }
+
+  console.log(`ingesting ${allSpecies.length} species (${speciesGen9.length} gen9 + ${megaSpecies.length} mega from gen7 + ${homeFromGen8.length + homeFromGen7.length} HOME supplement)`);
   ingestSpecies(allSpecies);
 
   const moves = (Array.from(gen9.moves) as unknown as Move[]).filter(isStandard);
@@ -244,10 +282,17 @@ async function main(): Promise<void> {
   const nonMegaSpecies = allSpecies.filter((s) => !(s.forme ?? "").startsWith("Mega"));
   const megaForms = allSpecies.filter((s) => (s.forme ?? "").startsWith("Mega"));
 
+  const learnsetSources = [gen9, gen8, gen7];
   for (const s of nonMegaSpecies) {
-    const ls = await gen9.learnsets.get(s.name);
-    if (!ls?.learnset) continue;
-    const moveIds = Object.keys(ls.learnset).map((m) => toID(m));
+    let moveIds: string[] | null = null;
+    for (const g of learnsetSources) {
+      const ls = await g.learnsets.get(s.name);
+      if (ls?.learnset) {
+        moveIds = Object.keys(ls.learnset).map((m) => toID(m));
+        break;
+      }
+    }
+    if (!moveIds) continue;
     baseLearnsetCache.set(s.id, moveIds);
     for (const moveId of moveIds) {
       if (ingestedMoveIds.has(moveId)) learnsetEntries.push([s.id, moveId]);
@@ -277,10 +322,7 @@ async function main(): Promise<void> {
       insertFormatLegality.run(speciesId, formatId);
     }
   });
-  for (const file of readdirSync(LEGAL_SPECIES_DIR)) {
-    if (!file.endsWith(".txt")) continue;
-    const formatId = formatIdFromFilename(basename(file, ".txt"));
-    const ids = parseAllowlist(join(LEGAL_SPECIES_DIR, file));
+  for (const { formatId, ids, file } of allowlistFiles) {
     const known: Array<[string, string]> = [];
     const unknown: string[] = [];
     for (const id of ids) {
