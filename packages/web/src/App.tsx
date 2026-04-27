@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Predicate } from "@pokequery/core";
 import {
@@ -11,6 +11,7 @@ import {
 import { FormatSelector } from "./components/FormatSelector.js";
 import { PredicateBuilder } from "./components/PredicateBuilder.js";
 import { ResultsTable } from "./components/ResultsTable.js";
+import { decodeState, encodeState, isEmptyPredicate } from "./url-state.js";
 
 const EXAMPLE: Predicate = {
   kind: "and",
@@ -28,10 +29,23 @@ const EXAMPLE: Predicate = {
 
 const EMPTY: Predicate = { kind: "and", children: [] };
 
+const initialFromUrl = decodeState(typeof window !== "undefined" ? window.location.hash : "");
+
 export default function App() {
-  const [formatId, setFormatId] = useState<string | undefined>(undefined);
-  const [predicate, setPredicate] = useState<Predicate>(EMPTY);
-  const [submitted, setSubmitted] = useState<QueryRequest | null>(null);
+  const [formatId, setFormatId] = useState<string | undefined>(initialFromUrl?.formatId);
+  const [predicate, setPredicate] = useState<Predicate>(initialFromUrl?.predicate ?? EMPTY);
+  const [submitted, setSubmitted] = useState<QueryRequest | null>(
+    initialFromUrl && !isEmptyPredicate(initialFromUrl.predicate)
+      ? { predicate: initialFromUrl.predicate, formatId: initialFromUrl.formatId, limit: 200 }
+      : null,
+  );
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const empty = isEmptyPredicate(predicate) && !formatId;
+    const hash = empty ? "" : "#" + encodeState({ predicate, formatId });
+    history.replaceState(null, "", hash || window.location.pathname + window.location.search);
+  }, [predicate, formatId]);
 
   const { data: formats = [] } = useQuery({ queryKey: ["formats"], queryFn: fetchFormats });
   const { data: moves = [] } = useQuery({ queryKey: ["moves"], queryFn: fetchMoves });
@@ -45,6 +59,16 @@ export default function App() {
 
   const handleSearch = () =>
     setSubmitted({ predicate, formatId, limit: 200 });
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard unavailable; ignore
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -74,7 +98,7 @@ export default function App() {
             className="text-sm text-gray-500 hover:text-indigo-600"
             onClick={() => setPredicate(EXAMPLE)}
           >
-            Load example (immune to partner earthquake)
+            Example: learns TR &amp; immune to partner EQ
           </button>
           <button
             type="button"
@@ -82,6 +106,13 @@ export default function App() {
             onClick={() => { setPredicate(EMPTY); setSubmitted(null); }}
           >
             Clear
+          </button>
+          <button
+            type="button"
+            className="text-sm text-gray-500 hover:text-indigo-600 ml-auto"
+            onClick={handleCopyLink}
+          >
+            {copied ? "Copied!" : "Copy link"}
           </button>
         </div>
 
@@ -95,7 +126,7 @@ export default function App() {
           </div>
         )}
 
-        {results && <ResultsTable data={results} />}
+        {results && <ResultsTable data={results} predicate={submitted?.predicate} />}
       </main>
     </div>
   );

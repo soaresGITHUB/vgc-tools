@@ -8,22 +8,76 @@ import {
 } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { Sprites } from "@pkmn/img";
-import type { StatKey } from "@pokequery/core";
 import type { QueryResponse, SpeciesResult } from "../api.js";
+import type { Predicate } from "@pokequery/core";
+import { ABILITIES_IMMUNE_TO_ATTACK, TYPES_IMMUNE_TO_ATTACK } from "@pokequery/core";
 import { TypeBadge } from "./TypeBadge.js";
+
+const normId = (s: string) => s.toLowerCase().replace(/\s/g, "");
+
+interface Highlights {
+  types: Set<string>;
+  abilityIds: Set<string>;
+}
+
+function extractHighlights(p: Predicate): Highlights {
+  const types = new Set<string>();
+  const abilityIds = new Set<string>();
+  function walk(node: Predicate) {
+    switch (node.kind) {
+      case "and":
+      case "or":
+        node.children.forEach(walk);
+        break;
+      case "not":
+        walk(node.child);
+        break;
+      case "hasType":
+        types.add(node.type);
+        break;
+      case "hasAbility":
+        abilityIds.add(node.abilityId);
+        break;
+      case "hasAnyAbility":
+        node.abilityIds.forEach((id) => abilityIds.add(id));
+        break;
+      case "immuneToType":
+        TYPES_IMMUNE_TO_ATTACK[node.type].forEach((t) => types.add(t));
+        if (node.allowAbilities) {
+          ABILITIES_IMMUNE_TO_ATTACK[node.type].forEach((a) => abilityIds.add(normId(a)));
+        }
+        break;
+      case "partnerSpreadImmuneTo":
+        TYPES_IMMUNE_TO_ATTACK["Ground"].forEach((t) => types.add(t));
+        ABILITIES_IMMUNE_TO_ATTACK["Ground"].forEach((a) => abilityIds.add(normId(a)));
+        abilityIds.add("telepathy");
+        break;
+      case "fakeOutImmune":
+        abilityIds.add("innerfocus");
+        abilityIds.add("owntempo");
+        types.add("Ghost");
+        break;
+      case "intimidateImmune":
+        ["innerfocus", "owntempo", "oblivious", "scrappy", "guarddog", "defiant", "competitive"]
+          .forEach((a) => abilityIds.add(a));
+        break;
+    }
+  }
+  walk(p);
+  return { types, abilityIds };
+}
+
+const EMPTY_HIGHLIGHTS: Highlights = { types: new Set(), abilityIds: new Set() };
 
 const col = createColumnHelper<SpeciesResult>();
 
-const normalizeAbility = (s: string): string => s.toLowerCase().replace(/\s/g, "");
-
-function buildColumns(showMatchedMoves: boolean) {
-  const columns = [
+function makeColumns(hl: Highlights) {
+  return [
     col.display({
       id: "sprite",
       header: "",
       cell: (info) => {
-        const id = info.row.original.id;
-        const src = Sprites.getPokemon(id).url;
+        const src = Sprites.getPokemon(info.row.original.id).url;
         return (
           <img
             src={src}
@@ -41,116 +95,58 @@ function buildColumns(showMatchedMoves: boolean) {
     col.accessor("types", {
       header: "Types",
       enableSorting: false,
-      cell: (info) => {
-        const matched = new Set(info.row.original.matchReasons.types);
-        return (
-          <div className="flex gap-1">
-            {info.getValue().map((t) => (
-              <TypeBadge key={t} type={t} matched={matched.has(t)} />
-            ))}
-          </div>
-        );
-      },
+      cell: (info) => (
+        <div className="flex gap-1">
+          {info.getValue().map((t) => (
+            <span
+              key={t}
+              className={hl.types.has(t) ? "ring-2 ring-indigo-400 ring-offset-1 rounded" : ""}
+            >
+              <TypeBadge type={t} />
+            </span>
+          ))}
+        </div>
+      ),
     }),
     col.accessor("abilities", {
       header: "Abilities",
       enableSorting: false,
-      cell: (info) => {
-        const matched = new Set(
-          info.row.original.matchReasons.abilities.map(normalizeAbility),
-        );
-        return (
-          <span className="text-xs text-gray-600 flex flex-wrap gap-1">
-            {info.getValue().map((a, i) => {
-              const isMatched = matched.has(normalizeAbility(a.name));
-              return (
-                <span
-                  key={a.name + i}
-                  className={
-                    isMatched
-                      ? "px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 font-semibold ring-1 ring-indigo-300"
-                      : ""
-                  }
-                >
+      cell: (info) => (
+        <span className="text-xs text-gray-600">
+          {info.getValue().map((a, i) => {
+            const matched = hl.abilityIds.has(normId(a.name));
+            return (
+              <span key={a.name}>
+                {i > 0 && " / "}
+                <span className={matched ? "font-semibold text-indigo-700" : ""}>
                   {a.name}
                 </span>
-              );
-            })}
-          </span>
-        );
-      },
+              </span>
+            );
+          })}
+        </span>
+      ),
     }),
-  ];
-
-  const statKeys: StatKey[] = ["hp", "atk", "def", "spa", "spd", "spe"];
-  const statHeaders: Record<StatKey, string> = {
-    hp: "HP", atk: "Atk", def: "Def", spa: "SpA", spd: "SpD", spe: "Spe",
-  };
-  for (const key of statKeys) {
-    columns.push(
-      col.accessor((r) => r.baseStats[key], {
-        id: key,
-        header: statHeaders[key],
-        cell: (info) => {
-          const matched = info.row.original.matchReasons.stats.includes(key);
-          return (
-            <span
-              className={
-                matched
-                  ? "inline-block px-1 rounded bg-indigo-100 text-indigo-800 font-semibold"
-                  : undefined
-              }
-            >
-              {info.getValue() as number}
-            </span>
-          );
-        },
-      }) as never,
-    );
-  }
-  columns.push(
+    col.accessor((r) => r.baseStats.hp, { id: "hp", header: "HP" }),
+    col.accessor((r) => r.baseStats.atk, { id: "atk", header: "Atk" }),
+    col.accessor((r) => r.baseStats.def, { id: "def", header: "Def" }),
+    col.accessor((r) => r.baseStats.spa, { id: "spa", header: "SpA" }),
+    col.accessor((r) => r.baseStats.spd, { id: "spd", header: "SpD" }),
+    col.accessor((r) => r.baseStats.spe, { id: "spe", header: "Spe" }),
     col.accessor(
       (r) => r.baseStats.hp + r.baseStats.atk + r.baseStats.def + r.baseStats.spa + r.baseStats.spd + r.baseStats.spe,
       { id: "bst", header: "BST" },
-    ) as never,
-  );
-
-  if (showMatchedMoves) {
-    columns.push(
-      col.display({
-        id: "matchedMoves",
-        header: "Matched moves",
-        cell: (info) => {
-          const moves = info.row.original.matchReasons.moves;
-          if (moves.length === 0) return null;
-          return (
-            <div className="flex flex-wrap gap-1">
-              {moves.map((m) => (
-                <span
-                  key={m}
-                  className="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 text-xs font-semibold ring-1 ring-indigo-300"
-                >
-                  {m}
-                </span>
-              ))}
-            </div>
-          );
-        },
-      }) as never,
-    );
-  }
-
-  return columns;
+    ),
+  ];
 }
 
-export function ResultsTable({ data }: { data: QueryResponse }) {
+export function ResultsTable({ data, predicate }: { data: QueryResponse; predicate?: Predicate }) {
   const [sorting, setSorting] = useState<SortingState>([]);
-
-  const showMatchedMoves = useMemo(
-    () => data.results.some((r) => r.matchReasons.moves.length > 0),
-    [data.results],
+  const highlights = useMemo(
+    () => (predicate ? extractHighlights(predicate) : EMPTY_HIGHLIGHTS),
+    [predicate],
   );
-  const columns = useMemo(() => buildColumns(showMatchedMoves), [showMatchedMoves]);
+  const columns = useMemo(() => makeColumns(highlights), [highlights]);
 
   const table = useReactTable({
     data: data.results,
