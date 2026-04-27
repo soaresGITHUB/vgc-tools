@@ -1,13 +1,14 @@
-import type { Predicate } from "@pokequery/core";
+import type { MatchReasons, PokemonType, Predicate } from "@pokequery/core";
 
 export interface SpeciesResult {
   id: string;
   name: string;
-  types: string[];
+  types: PokemonType[];
   abilities: Array<{ name: string; isHidden: boolean }>;
   baseStats: { hp: number; atk: number; def: number; spa: number; spd: number; spe: number };
   isMega: boolean;
   baseSpecies: string | null;
+  matchReasons: MatchReasons;
 }
 
 export interface QueryResponse {

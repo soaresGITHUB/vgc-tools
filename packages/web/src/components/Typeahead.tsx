@@ -15,10 +15,12 @@ export function Typeahead({ items, value, onChange, placeholder, className }: Pr
   const selectedName = items.find((i) => i.id === value)?.name ?? "";
   const displayValue = focused ? query : selectedName;
 
-  const filtered =
-    focused && query.length > 0
-      ? items.filter((i) => i.name.toLowerCase().includes(query.toLowerCase())).slice(0, 8)
-      : [];
+  const filtered = focused
+    ? (query.length > 0
+        ? items.filter((i) => i.name.toLowerCase().includes(query.toLowerCase()))
+        : items
+      ).slice(0, 8)
+    : [];
 
   function handleFocus() {
     setFocused(true);
