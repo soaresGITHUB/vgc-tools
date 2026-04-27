@@ -11,6 +11,6 @@ dist/
 .vscode/
 .idea/
 
-# Claude Code — local/personal files, not shared project config
-.claude/settings.local.json
-.claude/launch.json
+# Claude Code — not committed
+.claude/
+CLAUDE.md
