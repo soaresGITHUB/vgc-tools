@@ -135,6 +135,62 @@ describe("POST /query", () => {
     expect(body.total).toBeGreaterThan(15);
   });
 
+  it("should exclude Gastly from M-A (not in Reg M-A pool)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/query",
+      payload: {
+        predicate: { kind: "speciesId", id: "gastly" },
+        formatId: "vgc-2026-reg-m-a",
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as QueryResponse;
+    expect(body.total).toBe(0);
+  });
+
+  it("should exclude Bronzong from M-A (not in Reg M-A pool)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/query",
+      payload: {
+        predicate: { kind: "speciesId", id: "bronzong" },
+        formatId: "vgc-2026-reg-m-a",
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as QueryResponse;
+    expect(body.total).toBe(0);
+  });
+
+  it("should exclude Drifblim from M-A (not in Reg M-A pool)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/query",
+      payload: {
+        predicate: { kind: "speciesId", id: "drifblim" },
+        formatId: "vgc-2026-reg-m-a",
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as QueryResponse;
+    expect(body.total).toBe(0);
+  });
+
+  it("should include Garchomp in M-A (in Reg M-A pool)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/query",
+      payload: {
+        predicate: { kind: "speciesId", id: "garchomp" },
+        formatId: "vgc-2026-reg-m-a",
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as QueryResponse;
+    expect(body.total).toBe(1);
+  });
+
   it("should exclude Articuno from M-A (not in Paldea base dex)", async () => {
     const res = await app.inject({
       method: "POST",

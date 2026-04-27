@@ -10,8 +10,8 @@ export interface Format {
   name: string;
   generation: number;
   mechanics: FormatMechanics;
-  /** When true, queries are restricted to Pokémon in the base Paldea Pokédex (is_paldea_dex = 1). */
-  svPool: boolean;
+  /** When true, queries restrict species to those in `species_format_legality` for this format's id. */
+  useSpeciesPool: boolean;
   speciesAllowlist: Set<string> | null;
   speciesBanlist: Set<string>;
   restrictedSpecies: Set<string>;
@@ -41,7 +41,7 @@ export const REG_M_A: Format = {
     dynamax: false,
     zMoves: false,
   },
-  svPool: true,
+  useSpeciesPool: true,
   speciesAllowlist: null,
   speciesBanlist: new Set(),
   restrictedSpecies: VGC_RESTRICTED,
@@ -62,7 +62,7 @@ export const REG_I: Format = {
     dynamax: false,
     zMoves: false,
   },
-  svPool: false,
+  useSpeciesPool: false,
   speciesAllowlist: null,
   speciesBanlist: new Set(),
   restrictedSpecies: VGC_RESTRICTED,

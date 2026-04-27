@@ -1,8 +1,12 @@
 import { Dex } from "@pkmn/dex";
 import { Generations, toID } from "@pkmn/data";
-import { isInPaldeaBaseDex } from "@pokequery/core";
 import { applySchema, openDb, DB_PATH } from "./db.js";
-import { existsSync, unlinkSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, unlinkSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join, basename } from "node:path";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const LEGAL_SPECIES_DIR = join(__dirname, "legal-species");
 
 interface Species {
   id: string;
@@ -56,6 +60,28 @@ function isStandard<T extends { isNonstandard: string | null }>(d: T): boolean {
   return d.isNonstandard === null || d.isNonstandard === "Past";
 }
 
+function parseAllowlist(path: string): string[] {
+  const lines = readFileSync(path, "utf8").split(/\r?\n/);
+  const ids: string[] = [];
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (line.length === 0 || line.startsWith("#")) continue;
+    ids.push(line);
+  }
+  return ids;
+}
+
+const FILENAME_TO_FORMAT_ID: Record<string, string> = {
+  "reg-m-a": "vgc-2026-reg-m-a",
+  "reg-i": "vgc-2026-reg-i",
+};
+
+function formatIdFromFilename(stem: string): string {
+  const id = FILENAME_TO_FORMAT_ID[stem];
+  if (!id) throw new Error(`legal-species: no format mapping for filename "${stem}.txt"`);
+  return id;
+}
+
 async function main(): Promise<void> {
   if (existsSync(DB_PATH)) {
     unlinkSync(DB_PATH);
@@ -70,8 +96,11 @@ async function main(): Promise<void> {
   const gen7 = gens.get(7);
 
   const insertSpecies = db.prepare(`
-    INSERT INTO species (id, name, num, hp, atk, def, spa, spd, spe, weight, is_mega, is_paldea_dex, base_species, hidden_ability)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO species (id, name, num, hp, atk, def, spa, spd, spe, weight, is_mega, base_species, hidden_ability)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const insertFormatLegality = db.prepare(`
+    INSERT OR IGNORE INTO species_format_legality (species_id, format_id) VALUES (?, ?)
   `);
   const insertSpeciesType = db.prepare(`
     INSERT INTO species_types (species_id, type, slot) VALUES (?, ?, ?)
@@ -104,7 +133,6 @@ async function main(): Promise<void> {
       const isMega = (s.forme ?? "").startsWith("Mega") ? 1 : 0;
       const baseSpecies = s.baseSpecies && s.baseSpecies !== s.name ? s.baseSpecies : null;
       const hiddenAbility = s.abilities["H"] ?? null;
-      const isPaldeaDex = isInPaldeaBaseDex(s.id, s.num) ? 1 : 0;
       insertSpecies.run(
         s.id,
         s.name,
@@ -117,7 +145,6 @@ async function main(): Promise<void> {
         s.baseStats.spe,
         s.weightkg,
         isMega,
-        isPaldeaDex,
         baseSpecies,
         hiddenAbility,
       );
@@ -243,6 +270,26 @@ async function main(): Promise<void> {
 
   console.log(`${baseLearnsetCache.size} base species + ${megaInheritedCount} megas inherited, ${learnsetEntries.length} entries`);
   ingestLearnsets(learnsetEntries);
+
+  const knownSpeciesIds = new Set(allSpecies.map((s) => s.id));
+  const ingestFormatLegality = db.transaction((entries: Array<[string, string]>) => {
+    for (const [speciesId, formatId] of entries) {
+      insertFormatLegality.run(speciesId, formatId);
+    }
+  });
+  for (const file of readdirSync(LEGAL_SPECIES_DIR)) {
+    if (!file.endsWith(".txt")) continue;
+    const formatId = formatIdFromFilename(basename(file, ".txt"));
+    const ids = parseAllowlist(join(LEGAL_SPECIES_DIR, file));
+    const known: Array<[string, string]> = [];
+    const unknown: string[] = [];
+    for (const id of ids) {
+      if (knownSpeciesIds.has(id)) known.push([id, formatId]);
+      else unknown.push(id);
+    }
+    ingestFormatLegality(known);
+    console.log(`legality: ${formatId} ← ${known.length} entries from ${file}` + (unknown.length > 0 ? ` (${unknown.length} unknown skipped: ${unknown.join(", ")})` : ""));
+  }
 
   insertMeta.run("ingested_at", new Date().toISOString());
   insertMeta.run("source_generation", "9");

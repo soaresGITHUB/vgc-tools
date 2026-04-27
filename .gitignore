@@ -10,3 +10,7 @@ dist/
 *.log
 .vscode/
 .idea/
+
+# Claude Code — not committed
+.claude/
+CLAUDE.md

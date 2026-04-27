@@ -139,8 +139,9 @@ function buildFormatClauses(format: Format, params: unknown[]): string {
     parts.push(`s.id NOT IN (${ph})`);
   }
 
-  if (format.svPool) {
-    parts.push("s.is_paldea_dex = 1");
+  if (format.useSpeciesPool) {
+    params.push(format.id);
+    parts.push("s.id IN (SELECT species_id FROM species_format_legality WHERE format_id = ?)");
   }
 
   if (format.speciesBanlist.size > 0) {
