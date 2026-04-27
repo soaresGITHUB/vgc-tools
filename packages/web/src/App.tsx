@@ -74,7 +74,7 @@ export default function App() {
             className="text-sm text-gray-500 hover:text-indigo-600"
             onClick={() => setPredicate(EXAMPLE)}
           >
-            Load example (Trick Room + immune to Ground)
+            Load example (immune to partner earthquake)
           </button>
           <button
             type="button"

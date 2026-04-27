@@ -1,4 +1,13 @@
-import { compilePredicate, FORMATS, type Format, type Predicate } from "@pokequery/core";
+import {
+  collectMatchTargets,
+  compilePredicate,
+  computeMatchReasons,
+  FORMATS,
+  type Format,
+  type MatchReasons,
+  type PokemonType,
+  type Predicate,
+} from "@pokequery/core";
 
 export interface PreparedStatement {
   all: (...params: unknown[]) => unknown[];
@@ -17,6 +26,7 @@ export interface SpeciesResult {
   baseStats: { hp: number; atk: number; def: number; spa: number; spd: number; spe: number };
   isMega: boolean;
   baseSpecies: string | null;
+  matchReasons: MatchReasons;
 }
 
 export interface QueryOptions {
@@ -58,6 +68,7 @@ interface SpeciesRow {
 
 interface TypeRow { species_id: string; type: string; slot: number }
 interface AbilityRow { species_id: string; ability: string; is_hidden: number }
+interface LearnsetRow { species_id: string; move_id: string }
 
 export function executeQuery(db: DbLike, opts: QueryOptions): QueryOutcome {
   const format = opts.formatId ? FORMATS[opts.formatId] ?? null : null;
@@ -96,10 +107,10 @@ export function executeQuery(db: DbLike, opts: QueryOptions): QueryOutcome {
     .prepare(`SELECT species_id, ability, is_hidden FROM species_abilities WHERE species_id IN (${placeholders})`)
     .all(...ids) as AbilityRow[];
 
-  const typesByid = new Map<string, string[]>();
+  const typesByid = new Map<string, PokemonType[]>();
   for (const t of typeRows) {
     const arr = typesByid.get(t.species_id) ?? [];
-    arr.push(t.type);
+    arr.push(t.type as PokemonType);
     typesByid.set(t.species_id, arr);
   }
   const abilitiesById = new Map<string, { name: string; isHidden: boolean }[]>();
@@ -109,15 +120,42 @@ export function executeQuery(db: DbLike, opts: QueryOptions): QueryOutcome {
     abilitiesById.set(a.species_id, arr);
   }
 
-  const results: SpeciesResult[] = rows.map((r) => ({
-    id: r.id,
-    name: r.name,
-    types: typesByid.get(r.id) ?? [],
-    abilities: abilitiesById.get(r.id) ?? [],
-    baseStats: { hp: r.hp, atk: r.atk, def: r.def, spa: r.spa, spd: r.spd, spe: r.spe },
-    isMega: r.is_mega === 1,
-    baseSpecies: r.base_species,
-  }));
+  const targets = collectMatchTargets(opts.predicate);
+  const learnedByRow = new Map<string, string[]>();
+  if (targets.moves.length > 0) {
+    const movePh = targets.moves.map(() => "?").join(",");
+    const learnsetRows = db
+      .prepare(
+        `SELECT species_id, move_id FROM learnsets WHERE species_id IN (${placeholders}) AND move_id IN (${movePh})`,
+      )
+      .all(...ids, ...targets.moves) as LearnsetRow[];
+    for (const l of learnsetRows) {
+      const arr = learnedByRow.get(l.species_id) ?? [];
+      arr.push(l.move_id);
+      learnedByRow.set(l.species_id, arr);
+    }
+  }
+
+  const results: SpeciesResult[] = rows.map((r) => {
+    const types = typesByid.get(r.id) ?? [];
+    const abilities = abilitiesById.get(r.id) ?? [];
+    const baseStats = { hp: r.hp, atk: r.atk, def: r.def, spa: r.spa, spd: r.spd, spe: r.spe };
+    const matchReasons = computeMatchReasons(
+      targets,
+      { types, abilities: abilities.map((a) => a.name), baseStats },
+      learnedByRow.get(r.id) ?? [],
+    );
+    return {
+      id: r.id,
+      name: r.name,
+      types,
+      abilities,
+      baseStats,
+      isMega: r.is_mega === 1,
+      baseSpecies: r.base_species,
+      matchReasons,
+    };
+  });
 
   return {
     total: results.length,
