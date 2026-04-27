@@ -19,11 +19,12 @@ const TYPE_COLORS: Record<string, string> = {
   Fairy: "#EE99AC",
 };
 
-export function TypeBadge({ type }: { type: string }) {
+export function TypeBadge({ type, matched = false }: { type: string; matched?: boolean }) {
   const color = TYPE_COLORS[type] ?? "#999";
+  const ring = matched ? "ring-2 ring-indigo-500 ring-offset-1" : "";
   return (
     <span
-      className="px-2 py-0.5 rounded text-white text-xs font-semibold"
+      className={`px-2 py-0.5 rounded text-white text-xs font-semibold ${ring}`}
       style={{ backgroundColor: color }}
     >
       {type}

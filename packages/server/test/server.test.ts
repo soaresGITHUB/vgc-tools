@@ -3,6 +3,13 @@ import type { FastifyInstance } from "fastify";
 import { buildApp } from "../src/index.js";
 import { getTestDb } from "./fixture.js";
 
+interface MatchReasons {
+  moves: string[];
+  abilities: string[];
+  types: string[];
+  stats: string[];
+}
+
 interface SpeciesResult {
   id: string;
   name: string;
@@ -10,6 +17,7 @@ interface SpeciesResult {
   abilities: { name: string; isHidden: boolean }[];
   baseStats: { hp: number; atk: number; def: number; spa: number; spd: number; spe: number };
   isMega: boolean;
+  matchReasons: MatchReasons;
 }
 
 interface QueryResponse {
@@ -65,6 +73,36 @@ describe("POST /query", () => {
     const abilityNames = mudsdale?.abilities.map((a) => a.name).sort();
     expect(abilityNames).toContain("Stamina");
     expect(abilityNames).toContain("Inner Focus");
+  });
+
+  it("should report a matched ability in matchReasons for ground immunity via Levitate", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/query",
+      payload: {
+        predicate: { kind: "immuneToType", type: "Ground", allowAbilities: true },
+        limit: 200,
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as QueryResponse;
+    const cresselia = body.results.find((r) => r.id === "cresselia");
+    expect(cresselia?.matchReasons.abilities).toContain("Levitate");
+  });
+
+  it("should report a matched move in matchReasons for learnsMove", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/query",
+      payload: {
+        predicate: { kind: "learnsMove", moveId: "trickroom" },
+        limit: 200,
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as QueryResponse;
+    const cresselia = body.results.find((r) => r.id === "cresselia");
+    expect(cresselia?.matchReasons.moves).toContain("trickroom");
   });
 
   it("should reject malformed predicates with 400", async () => {
