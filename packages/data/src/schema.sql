@@ -10,10 +10,18 @@ CREATE TABLE IF NOT EXISTS species (
   spe INTEGER NOT NULL,
   weight REAL NOT NULL,
   is_mega INTEGER NOT NULL DEFAULT 0,
-  is_paldea_dex INTEGER NOT NULL DEFAULT 0,
   base_species TEXT,
   hidden_ability TEXT
 );
+
+CREATE TABLE IF NOT EXISTS species_format_legality (
+  species_id TEXT NOT NULL,
+  format_id TEXT NOT NULL,
+  PRIMARY KEY (species_id, format_id),
+  FOREIGN KEY (species_id) REFERENCES species(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_species_format_legality_format ON species_format_legality(format_id);
 
 CREATE TABLE IF NOT EXISTS species_types (
   species_id TEXT NOT NULL,

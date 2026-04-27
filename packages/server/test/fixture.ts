@@ -1,7 +1,6 @@
 import initSqlJs, { type Database as SqlJsDatabase } from "sql.js";
 import { Dex } from "@pkmn/dex";
 import { Generations, toID } from "@pkmn/data";
-import { isInPaldeaBaseDex } from "@pokequery/core";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
@@ -65,7 +64,7 @@ export async function getTestDb(): Promise<DbLike> {
   }
 
   const insSpec = db.prepare(
-    "INSERT INTO species (id, name, num, hp, atk, def, spa, spd, spe, weight, is_mega, is_paldea_dex, base_species, hidden_ability) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+    "INSERT INTO species (id, name, num, hp, atk, def, spa, spd, spe, weight, is_mega, base_species, hidden_ability) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
   );
   const insType = db.prepare("INSERT INTO species_types (species_id, type, slot) VALUES (?,?,?)");
   const insAbil = db.prepare(
@@ -79,13 +78,27 @@ export async function getTestDb(): Promise<DbLike> {
       s.baseStats.hp, s.baseStats.atk, s.baseStats.def,
       s.baseStats.spa, s.baseStats.spd, s.baseStats.spe,
       s.weightkg, (s.forme ?? "").startsWith("Mega") ? 1 : 0,
-      isInPaldeaBaseDex(s.id as string, s.num as number) ? 1 : 0,
       baseSpecies, s.abilities.H ?? null,
     ]);
     s.types.forEach((t: string, i: number) => insType.run([s.id, t, i]));
     for (const [slot, ab] of Object.entries(s.abilities) as [string, string][]) {
       insAbil.run([s.id, ab, slot === "H" ? 1 : 0]);
     }
+  }
+  db.exec("COMMIT");
+
+  const knownIds = new Set(allSpecies.map((s) => s.id as string));
+  const insLegality = db.prepare(
+    "INSERT OR IGNORE INTO species_format_legality (species_id, format_id) VALUES (?,?)",
+  );
+  const allowlistPath = resolve(__dirname, "../../data/src/legal-species/reg-m-a.txt");
+  const lines = readFileSync(allowlistPath, "utf8").split(/\r?\n/);
+  db.exec("BEGIN");
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (line.length === 0 || line.startsWith("#")) continue;
+    if (!knownIds.has(line)) continue;
+    insLegality.run([line, "vgc-2026-reg-m-a"]);
   }
   db.exec("COMMIT");
 
