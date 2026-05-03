@@ -1,6 +1,7 @@
 import type { Predicate, ComparisonOp } from "./ast.js";
 import type { PokemonType, StatKey, Stats } from "../types.js";
 import { TYPES_IMMUNE_TO_ATTACK, ABILITIES_IMMUNE_TO_ATTACK } from "../typechart.js";
+import { weatherSetterAbilities, weatherSetterMoves } from "./weather.js";
 
 export interface StatCondition {
   stat: StatKey;
@@ -75,6 +76,17 @@ function walk(p: Predicate, t: MatchTargets, negated: boolean): void {
       for (const ty of TYPES_IMMUNE_TO_ATTACK.Ground) t.types.push(ty);
       for (const a of ABILITIES_IMMUNE_TO_ATTACK.Ground) t.abilities.push(normalizeAbility(a));
       t.abilities.push("telepathy");
+      return;
+    case "isWeatherSetter":
+      if (p.via === "ability") {
+        for (const a of weatherSetterAbilities(p.weather)) t.abilities.push(a);
+      } else if (p.via === "prankster") {
+        t.abilities.push("prankster");
+        for (const m of weatherSetterMoves(p.weather)) t.moves.push(m);
+      } else {
+        for (const a of weatherSetterAbilities(p.weather)) t.abilities.push(a);
+        for (const m of weatherSetterMoves(p.weather)) t.moves.push(m);
+      }
       return;
     case "statCompare":
       t.stats.push({ stat: p.stat, op: p.op, value: p.value });

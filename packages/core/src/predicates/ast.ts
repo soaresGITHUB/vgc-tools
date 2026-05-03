@@ -2,6 +2,10 @@ import type { PokemonType, StatKey } from "../types.js";
 
 export type ComparisonOp = "eq" | "neq" | "lt" | "lte" | "gt" | "gte";
 
+export type Weather = "sun" | "rain" | "sand" | "snow";
+
+export type WeatherSetterVia = "ability" | "prankster";
+
 export type Predicate =
   | { kind: "and"; children: Predicate[] }
   | { kind: "or"; children: Predicate[] }
@@ -18,6 +22,7 @@ export type Predicate =
   | { kind: "speedControlUser" }
   | { kind: "fakeOutImmune" }
   | { kind: "intimidateImmune" }
+  | { kind: "isWeatherSetter"; weather?: Weather; via?: WeatherSetterVia }
   | { kind: "speciesId"; id: string }
   | { kind: "notSpeciesId"; id: string };
 

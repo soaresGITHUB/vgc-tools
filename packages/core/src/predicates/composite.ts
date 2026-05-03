@@ -1,7 +1,14 @@
-import type { Predicate } from "./ast.js";
+import type { Predicate, Weather, WeatherSetterVia } from "./ast.js";
 
 export function partnerSpreadImmuneTo(): Predicate {
   return { kind: "partnerSpreadImmuneTo" };
+}
+
+export function isWeatherSetter(weather?: Weather, via?: WeatherSetterVia): Predicate {
+  if (weather !== undefined && via !== undefined) return { kind: "isWeatherSetter", weather, via };
+  if (weather !== undefined) return { kind: "isWeatherSetter", weather };
+  if (via !== undefined) return { kind: "isWeatherSetter", via };
+  return { kind: "isWeatherSetter" };
 }
 
 export function redirectionUser(): Predicate {

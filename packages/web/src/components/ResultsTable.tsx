@@ -10,10 +10,29 @@ import { useMemo, useState } from "react";
 import { Sprites } from "@pkmn/img";
 import type { QueryResponse, SpeciesResult } from "../api.js";
 import type { Predicate } from "@pokequery/core";
-import { ABILITIES_IMMUNE_TO_ATTACK, TYPES_IMMUNE_TO_ATTACK } from "@pokequery/core";
+import { ABILITIES_IMMUNE_TO_ATTACK, TYPES_IMMUNE_TO_ATTACK, weatherSetterAbilities } from "@pokequery/core";
 import { TypeBadge } from "./TypeBadge.js";
 
 const normId = (s: string) => s.toLowerCase().replace(/\s/g, "");
+
+const MOVE_DISPLAY: Record<string, string> = {
+  raindance: "Rain Dance",
+  sunnyday: "Sunny Day",
+  sandstorm: "Sandstorm",
+  snowscape: "Snowscape",
+  hail: "Hail",
+  chillyreception: "Chilly Reception",
+  trickroom: "Trick Room",
+  tailwind: "Tailwind",
+  icywind: "Icy Wind",
+  electroweb: "Electroweb",
+  thunderwave: "Thunder Wave",
+  followme: "Follow Me",
+  ragepowder: "Rage Powder",
+};
+
+const prettyMoveName = (id: string): string =>
+  MOVE_DISPLAY[id] ?? id.replace(/(^.|\s.)/g, (c) => c.toUpperCase());
 
 interface Highlights {
   types: Set<string>;
@@ -60,6 +79,13 @@ function extractHighlights(p: Predicate): Highlights {
       case "intimidateImmune":
         ["innerfocus", "owntempo", "oblivious", "scrappy", "guarddog", "defiant", "competitive"]
           .forEach((a) => abilityIds.add(a));
+        break;
+      case "isWeatherSetter":
+        if (node.via === "prankster") {
+          abilityIds.add("prankster");
+        } else {
+          for (const a of weatherSetterAbilities(node.weather)) abilityIds.add(a);
+        }
         break;
     }
   }
@@ -111,21 +137,29 @@ function makeColumns(hl: Highlights) {
     col.accessor("abilities", {
       header: "Abilities",
       enableSorting: false,
-      cell: (info) => (
-        <span className="text-xs text-gray-600">
-          {info.getValue().map((a, i) => {
-            const matched = hl.abilityIds.has(normId(a.name));
-            return (
-              <span key={a.name}>
-                {i > 0 && " / "}
-                <span className={matched ? "font-semibold text-indigo-700" : ""}>
-                  {a.name}
+      cell: (info) => {
+        const matchedMoves = info.row.original.matchReasons.moves;
+        return (
+          <span className="text-xs text-gray-600">
+            {info.getValue().map((a, i) => {
+              const matched = hl.abilityIds.has(normId(a.name));
+              return (
+                <span key={a.name}>
+                  {i > 0 && " / "}
+                  <span className={matched ? "font-semibold text-indigo-700" : ""}>
+                    {a.name}
+                  </span>
                 </span>
+              );
+            })}
+            {matchedMoves.length > 0 && (
+              <span className="ml-2 inline-block px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 text-xs font-semibold ring-1 ring-indigo-300 align-middle">
+                via {matchedMoves.map(prettyMoveName).join(", ")}
               </span>
-            );
-          })}
-        </span>
-      ),
+            )}
+          </span>
+        );
+      },
     }),
     col.accessor((r) => r.baseStats.hp, { id: "hp", header: "HP" }),
     col.accessor((r) => r.baseStats.atk, { id: "atk", header: "Atk" }),

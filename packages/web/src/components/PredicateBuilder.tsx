@@ -1,4 +1,4 @@
-import type { Predicate, PokemonType, StatKey, ComparisonOp } from "@pokequery/core";
+import type { Predicate, PokemonType, StatKey, ComparisonOp, Weather, WeatherSetterVia } from "@pokequery/core";
 import type { MoveInfo, AbilityInfo } from "../api.js";
 import { Typeahead } from "./Typeahead.js";
 
@@ -23,6 +23,7 @@ type SupportedLeafKind =
   | "speedControlUser"
   | "fakeOutImmune"
   | "intimidateImmune"
+  | "isWeatherSetter"
   | "statCompare"
   | "isMega";
 
@@ -36,6 +37,7 @@ const LEAF_LABELS: Record<SupportedLeafKind, string> = {
   speedControlUser: "Speed control user",
   fakeOutImmune: "Fake Out immune (no items)",
   intimidateImmune: "Intimidate immune",
+  isWeatherSetter: "Weather setter",
   statCompare: "Stat comparison",
   isMega: "Is Mega",
 };
@@ -50,6 +52,7 @@ const LEAF_DEFAULTS: Record<SupportedLeafKind, Predicate> = {
   speedControlUser: { kind: "speedControlUser" },
   fakeOutImmune: { kind: "fakeOutImmune" },
   intimidateImmune: { kind: "intimidateImmune" },
+  isWeatherSetter: { kind: "isWeatherSetter" },
   statCompare: { kind: "statCompare", stat: "spe", op: "lt", value: 60 },
   isMega: { kind: "isMega" },
 };
@@ -320,6 +323,39 @@ function ConditionInputs({ predicate, onChange, moves, abilities }: LeafProps) {
     case "fakeOutImmune":
     case "intimidateImmune":
       return null;
+
+    case "isWeatherSetter": {
+      const buildWeatherSetter = (weather: Weather | "", via: WeatherSetterVia | ""): Predicate => {
+        const next: { kind: "isWeatherSetter"; weather?: Weather; via?: WeatherSetterVia } = { kind: "isWeatherSetter" };
+        if (weather !== "") next.weather = weather;
+        if (via !== "") next.via = via;
+        return next;
+      };
+      return (
+        <>
+          <select
+            className={cls}
+            value={predicate.weather ?? ""}
+            onChange={(e) => onChange(buildWeatherSetter(e.target.value as Weather | "", predicate.via ?? ""))}
+          >
+            <option value="">Any weather</option>
+            <option value="sun">Sun</option>
+            <option value="rain">Rain</option>
+            <option value="sand">Sand</option>
+            <option value="snow">Snow</option>
+          </select>
+          <select
+            className={cls}
+            value={predicate.via ?? ""}
+            onChange={(e) => onChange(buildWeatherSetter(predicate.weather ?? "", e.target.value as WeatherSetterVia | ""))}
+          >
+            <option value="">Any source</option>
+            <option value="ability">Via ability</option>
+            <option value="prankster">Via Prankster + move</option>
+          </select>
+        </>
+      );
+    }
 
     case "statCompare":
       return (

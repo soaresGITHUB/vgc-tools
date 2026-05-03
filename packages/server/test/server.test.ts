@@ -105,6 +105,171 @@ describe("POST /query", () => {
     expect(cresselia?.matchReasons.moves).toContain("trickroom");
   });
 
+  it("should match Pelipper (Drizzle) for isWeatherSetter('rain') and surface the ability", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/query",
+      payload: {
+        predicate: {
+          kind: "and",
+          children: [
+            { kind: "isWeatherSetter", weather: "rain" },
+            { kind: "speciesId", id: "pelipper" },
+          ],
+        },
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as QueryResponse;
+    expect(body.total).toBe(1);
+    expect(body.results[0]?.matchReasons.abilities).toContain("Drizzle");
+  });
+
+  it("should match Torkoal (Drought) for isWeatherSetter('sun')", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/query",
+      payload: {
+        predicate: {
+          kind: "and",
+          children: [
+            { kind: "isWeatherSetter", weather: "sun" },
+            { kind: "speciesId", id: "torkoal" },
+          ],
+        },
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as QueryResponse;
+    expect(body.total).toBe(1);
+    expect(body.results[0]?.matchReasons.abilities).toContain("Drought");
+  });
+
+  it("should match Tyranitar (Sand Stream) for isWeatherSetter('sand')", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/query",
+      payload: {
+        predicate: {
+          kind: "and",
+          children: [
+            { kind: "isWeatherSetter", weather: "sand" },
+            { kind: "speciesId", id: "tyranitar" },
+          ],
+        },
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as QueryResponse;
+    expect(body.total).toBe(1);
+    expect(body.results[0]?.matchReasons.abilities).toContain("Sand Stream");
+  });
+
+  it("should not surface Sand Stream as a reason under isWeatherSetter('rain') (only rain abilities/moves count)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/query",
+      payload: {
+        predicate: {
+          kind: "and",
+          children: [
+            { kind: "isWeatherSetter", weather: "rain" },
+            { kind: "speciesId", id: "tyranitar" },
+          ],
+        },
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as QueryResponse;
+    expect(body.total).toBe(1);
+    const reasons = body.results[0]!.matchReasons;
+    expect(reasons.abilities).not.toContain("Sand Stream");
+    expect(reasons.moves).toContain("raindance");
+  });
+
+  it("should match Pelipper under isWeatherSetter('rain','ability') with no move reason", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/query",
+      payload: {
+        predicate: {
+          kind: "and",
+          children: [
+            { kind: "isWeatherSetter", weather: "rain", via: "ability" },
+            { kind: "speciesId", id: "pelipper" },
+          ],
+        },
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as QueryResponse;
+    expect(body.total).toBe(1);
+    expect(body.results[0]?.matchReasons.abilities).toContain("Drizzle");
+    expect(body.results[0]?.matchReasons.moves).toHaveLength(0);
+  });
+
+  it("should match Klefki under isWeatherSetter('rain','prankster')", async () => {
+    // Klefki has Prankster as its primary ability and learns Rain Dance in Gen 9
+    const res = await app.inject({
+      method: "POST",
+      url: "/query",
+      payload: {
+        predicate: {
+          kind: "and",
+          children: [
+            { kind: "isWeatherSetter", weather: "rain", via: "prankster" },
+            { kind: "speciesId", id: "klefki" },
+          ],
+        },
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as QueryResponse;
+    expect(body.total).toBe(1);
+    expect(body.results[0]?.matchReasons.abilities).toContain("Prankster");
+    expect(body.results[0]?.matchReasons.moves).toContain("raindance");
+  });
+
+  it("should not match Pelipper under isWeatherSetter('rain','prankster') (no Prankster)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/query",
+      payload: {
+        predicate: {
+          kind: "and",
+          children: [
+            { kind: "isWeatherSetter", weather: "rain", via: "prankster" },
+            { kind: "speciesId", id: "pelipper" },
+          ],
+        },
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as QueryResponse;
+    expect(body.total).toBe(0);
+  });
+
+  it("should not exclude Miraidon under isWeatherSetter (Hadron Engine is electric terrain, not weather)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/query",
+      payload: {
+        predicate: {
+          kind: "and",
+          children: [
+            { kind: "isWeatherSetter" },
+            { kind: "speciesId", id: "miraidon" },
+          ],
+        },
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as QueryResponse;
+    if (body.total === 1) {
+      expect(body.results[0]?.matchReasons.abilities).not.toContain("Hadron Engine");
+    }
+  });
+
   it("should reject malformed predicates with 400", async () => {
     const res = await app.inject({
       method: "POST",

@@ -15,6 +15,7 @@ import {
 import {
   fakeOutImmune,
   intimidateImmune,
+  isWeatherSetter,
   partnerSpreadImmuneTo,
   redirectionUser,
   speedControlUser,
@@ -151,6 +152,53 @@ describe("compilePredicate", () => {
       "defiant",
       "competitive",
     ]);
+  });
+
+  it("should compile isWeatherSetter (any) with abilities and moves across all weathers", () => {
+    const result = compilePredicate(isWeatherSetter());
+    expect(result.whereClause).toContain("species_abilities");
+    expect(result.whereClause).toContain("learnsets");
+    for (const id of [
+      "drizzle",
+      "drought",
+      "sandstream",
+      "snowwarning",
+      "sunnyday",
+      "raindance",
+      "sandstorm",
+      "snowscape",
+      "chillyreception",
+    ]) {
+      expect(result.params).toContain(id);
+    }
+    expect(result.params).not.toContain("hadronengine");
+  });
+
+  it("should compile isWeatherSetter('rain') restricted to rain abilities and Rain Dance", () => {
+    const result = compilePredicate(isWeatherSetter("rain"));
+    expect(result.params).toContain("drizzle");
+    expect(result.params).toContain("primordialsea");
+    expect(result.params).toContain("raindance");
+    expect(result.params).not.toContain("drought");
+    expect(result.params).not.toContain("sandstream");
+    expect(result.params).not.toContain("sunnyday");
+  });
+
+  it("should compile isWeatherSetter('rain', 'ability') with abilities only and no move check", () => {
+    const result = compilePredicate(isWeatherSetter("rain", "ability"));
+    expect(result.params).toContain("drizzle");
+    expect(result.params).toContain("primordialsea");
+    expect(result.params).not.toContain("raindance");
+    expect(result.whereClause).not.toContain("learnsets");
+  });
+
+  it("should compile isWeatherSetter('rain', 'prankster') with Prankster + Rain Dance and no rain abilities", () => {
+    const result = compilePredicate(isWeatherSetter("rain", "prankster"));
+    expect(result.params).toContain("prankster");
+    expect(result.params).toContain("raindance");
+    expect(result.params).not.toContain("drizzle");
+    expect(result.params).not.toContain("primordialsea");
+    expect(result.whereClause).toMatch(/AND/);
   });
 
   it("should nest AND/OR predicates correctly", () => {

@@ -38,6 +38,11 @@ export const predicateSchema: z.ZodType<Predicate, z.ZodTypeDef, unknown> = z.la
     z.object({ kind: z.literal("speedControlUser") }),
     z.object({ kind: z.literal("fakeOutImmune") }),
     z.object({ kind: z.literal("intimidateImmune") }),
+    z.object({
+      kind: z.literal("isWeatherSetter"),
+      weather: z.enum(["sun", "rain", "sand", "snow"]).optional(),
+      via: z.enum(["ability", "prankster"]).optional(),
+    }),
     z.object({ kind: z.literal("speciesId"), id: idSchema }),
     z.object({ kind: z.literal("notSpeciesId"), id: idSchema }),
   ]),

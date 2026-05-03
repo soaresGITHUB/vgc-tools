@@ -1,6 +1,7 @@
 import type { Predicate, ComparisonOp } from "./ast.js";
-import { hasAbility, hasAnyAbility, hasType, immuneToType, learnsMove, or } from "./ast.js";
+import { and, hasAbility, hasAnyAbility, hasType, immuneToType, learnsMove, or } from "./ast.js";
 import { ABILITIES_IMMUNE_TO_ATTACK, TYPES_IMMUNE_TO_ATTACK } from "../typechart.js";
+import { weatherSetterAbilities, weatherSetterMoves } from "./weather.js";
 
 export interface CompiledQuery {
   whereClause: string;
@@ -107,6 +108,17 @@ function compileNode(p: Predicate, params: unknown[]): string {
         ]),
         params,
       );
+    case "isWeatherSetter": {
+      const abilities = weatherSetterAbilities(p.weather);
+      const moveBranches = weatherSetterMoves(p.weather).map((m) => learnsMove(m));
+      if (p.via === "ability") {
+        return compileNode(hasAnyAbility(abilities), params);
+      }
+      if (p.via === "prankster") {
+        return compileNode(and(hasAbility("prankster"), or(...moveBranches)), params);
+      }
+      return compileNode(or(hasAnyAbility(abilities), ...moveBranches), params);
+    }
     case "speciesId":
       params.push(p.id);
       return "s.id = ?";
